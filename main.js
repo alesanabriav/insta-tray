@@ -1,60 +1,60 @@
-const electron = require('electron')
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
+const { app, Tray, Menu, BrowserWindow } = require('electron');
+const path = require('path');
 
-const path = require('path')
-const url = require('url')
+let iconPath = path.join(__dirname, 'instagram-w.png');
+let appIcon = null;
+let win = null;
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow
+app.dock.hide();
 
-function createWindow () {
-  // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600})
+app.on('ready', () => {
 
-  // and load the index.html of the app.
-  mainWindow.loadURL(url.format({
-    pathname: path.join(__dirname, 'index.html'),
-    protocol: 'file:',
-    slashes: true
-  }))
+  win = new BrowserWindow({
+    width: 350, 
+    height: 550, 
+    show: false,
+    fullscreenable: false,
+    resizable: false,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      backgroundThrottling: false
+    }
+  });
+ 
+  win.loadURL('https://www.instagram.com/');
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  appIcon = new Tray(iconPath);
 
-  // Emitted when the window is closed.
-  mainWindow.on('closed', function () {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    mainWindow = null
+  let contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Quit',
+      accelerator: 'Command+Q',
+      selector: 'terminate:'
+    }
+  ]);
+
+  appIcon.on('click', function (event) {
+    event.preventDefault();
+
+    const position = getWindowPosition();
+    win.setPosition(position.x, position.y, false); 
+    win.show()
+    win.focus()
+  });
+
+  win.on('blur', () => {
+    if (!win.webContents.isDevToolsOpened()) {
+      win.hide()
+    }
   })
+});
+
+const getWindowPosition = () => {
+  const windowBounds = win.getBounds();
+  const trayBounds = appIcon.getBounds();
+  const x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2))
+  const y = Math.round(trayBounds.y + trayBounds.height + 4)
+
+  return { x: x, y: y }
 }
-
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
-
-// Quit when all windows are closed.
-app.on('window-all-closed', function () {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-
-app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow()
-  }
-})
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
